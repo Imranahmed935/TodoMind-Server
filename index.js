@@ -1,4 +1,5 @@
-const express = require('express')
+require('dotenv').config();
+const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const port = process.env.PORT || 5000;
@@ -24,6 +25,12 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
+
+    app.post('/task', async (req, res)=>{
+      const data = req.body;
+      const result = await taskContainer.insertOne(data)
+      res.send(result)
+    })
 
 
 
