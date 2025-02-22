@@ -20,51 +20,93 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-    const taskContainer = client.db('allTask').collection('Tasks')
   try {
+
     // Connect the client to the server (optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
+    const taskContainer = client.db('allTask').collection('Tasks')
 
-    app.post('/task', async (req, res) => {
-      const data = req.body;
-      const result = await taskContainer.insertOne(data);
-      res.send(result);
-    });
+       // Get tasks by user email
 
-    app.get('/taskRead', async (req, res) => {
-      const result = await taskContainer.find().toArray();
-      res.send(result);
-    });
-
-    app.delete('/deleteTask/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await taskContainer.deleteOne(query);
-      res.send(result);
-    });
+       app.get('/tasks/:email', async (req, res) => {
+        const { email } = req.params;
+        try {
+          const tasks = await taskContainer.find({ email }).toArray();
+          res.json(tasks);
+        } catch (error) {
+          res.status(500).json({ error: 'Failed to fetch tasks' });
+        }
+      });
+  
+      // get singleTask
+      app.get('/singleTasks/:id', async (req, res) => {
+        const  id  = req.params.id;
+        const query = {_id: new ObjectId(id)}
+          const result = await taskContainer.findOne(query)
+          res.json(result);
+      });
+  
+      // add task
+      app.post('/tasks', async(req,res)=> {
+        const task = req.body
+        const result = await taskContainer.insertOne(task)
+        res.send(result)
+      })
+  
+      //edit task
+      app.put('/tasks/:id', async(req,res) => {
+        const id = req.params.id
+        const task = req.body
+        const filter = {_id : new ObjectId(id)} 
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            title: task.title,
+            description: task.description,
+            category: task.category
+          }
+        }
+        const result = await taskContainer.updateOne(filter, updatedDoc, options);
+        res.send(result)
+      })
+  
+  
+      // drag
+      app.put('/dragTask/:id', async (req, res) => {
+        const id = req.params.id
+        const {category} = req.body
+        const filter = {_id: new ObjectId(id)}
+        const updatedTask = {
+          $set:{
+            category: category
+          }
+        }
+  
+        const result = await taskContainer.updateOne(filter,updatedTask)
+        res.send(result)
+      })
+  
+      // delete task
+      app.delete('/tasks/:id', async(req,res)=>{
+        const id = req.params.id
+        const query = {_id : new ObjectId(id)}
+        const result = await taskContainer.deleteOne(query)
+        res.send(result)
+      })
 
     // Update Task
-    app.put('/updateTask/:id', async (req, res) => {
-      const id = req.params.id;
-      const updatedTask = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          task:updatedTask.task,
-          description:updatedTask.description,
-          time:updatedTask.time,
-          category:updatedTask.category
-        },
-      };
-      const result = await taskContainer.updateOne(query, updateDoc);
-      res.send(result); // Send result back
-    });
+    
+   
   } finally {
     // await client.close();
   }
 }
 
 run().catch(console.dir);
+
+app.get('/', (req, res)=>{
+  res.send('server is running')
+})
 
 app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
