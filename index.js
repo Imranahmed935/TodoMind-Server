@@ -5,9 +5,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const app = express();
 
-app.use(cors())
-app.use(express.json())
-
+app.use(cors());
+app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.haqk7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -23,45 +22,50 @@ const client = new MongoClient(uri, {
 async function run() {
     const taskContainer = client.db('allTask').collection('Tasks')
   try {
-    // Connect the client to the server	(optional starting in v4.7)
+    // Connect the client to the server (optional starting in v4.7)
     // await client.connect();
 
-    app.post('/task', async (req, res)=>{
+    app.post('/task', async (req, res) => {
       const data = req.body;
-      const result = await taskContainer.insertOne(data)
-      res.send(result)
-    })
+      const result = await taskContainer.insertOne(data);
+      res.send(result);
+    });
 
-    app.get('/taskRead', async (req,res)=>{
-      const result = await taskContainer.find().toArray()
-      res.send(result)
-    })
+    app.get('/taskRead', async (req, res) => {
+      const result = await taskContainer.find().toArray();
+      res.send(result);
+    });
 
-    app.delete('/deleteTask/:id', async (req,res)=>{
+    app.delete('/deleteTask/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) };
       const result = await taskContainer.deleteOne(query);
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-   
-
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // Update Task
+    app.put('/updateTask/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedTask = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          task:updatedTask.task,
+          description:updatedTask.description,
+          time:updatedTask.time,
+          category:updatedTask.category
+        },
+      };
+      const result = await taskContainer.updateOne(query, updateDoc);
+      res.send(result); // Send result back
+    });
   } finally {
-    // Ensures that the client will close when you finish/error
     // await client.close();
   }
 }
+
 run().catch(console.dir);
 
-
-app.get('/', (req, res)=>{
-    res.send('TodoMind server is Running!')
-})
-
-app.listen(port, ()=>{
-    console.log(`The server is Running on port ${port}`);
-})
-
+app.listen(port, () => {
+  console.log(`Server is running on port: ${port}`);
+});
