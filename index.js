@@ -23,10 +23,10 @@ async function run() {
   try {
 
     // Connect the client to the server (optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const taskContainer = client.db('allTask').collection('Tasks')
+    const userCollection = client.db('allTask').collection('users')
 
-       // Get tasks by user email
 
        app.get('/tasks/:email', async (req, res) => {
         const { email } = req.params;
@@ -37,8 +37,36 @@ async function run() {
           res.status(500).json({ error: 'Failed to fetch tasks' });
         }
       });
-  
-      // get singleTask
+
+      app.post('/users', async (req, res) => {
+        try {
+          const { email, name } = req.body;
+          
+          if (!email || !name) {
+            return res.status(400).json({ message: "Email and name are required" });
+          }
+      
+          const existingUser = await userCollection.findOne({ email });
+      
+          if (existingUser) {
+            return res.status(409).json({ message: "User already exists" });
+          }
+      
+          const result = await userCollection.insertOne({ name, email });
+          
+          res.status(201).json(result);
+        } catch (error) {
+          console.error("Database error:", error);
+          res.status(500).json({ message: "Internal server error" });
+        }
+      });
+
+      app.get('/users/:email', async (req, res)=>{
+        const email =req.params.email;
+        const result = await userCollection.findOne({email})
+        res.send(result)
+      })
+      
       app.get('/singleTasks/:id', async (req, res) => {
         const  id  = req.params.id;
         const query = {_id: new ObjectId(id)}
@@ -46,14 +74,13 @@ async function run() {
           res.json(result);
       });
   
-      // add task
       app.post('/tasks', async(req,res)=> {
         const task = req.body
         const result = await taskContainer.insertOne(task)
         res.send(result)
       })
   
-      //edit task
+
       app.put('/tasks/:id', async(req,res) => {
         const id = req.params.id
         const task = req.body
@@ -71,7 +98,7 @@ async function run() {
       })
   
   
-      // drag
+
       app.put('/dragTask/:id', async (req, res) => {
         const id = req.params.id
         const {category} = req.body
@@ -86,7 +113,6 @@ async function run() {
         res.send(result)
       })
   
-      // delete task
       app.delete('/tasks/:id', async(req,res)=>{
         const id = req.params.id
         const query = {_id : new ObjectId(id)}
@@ -94,7 +120,6 @@ async function run() {
         res.send(result)
       })
 
-    // Update Task
     
    
   } finally {
